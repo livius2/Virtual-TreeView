@@ -2564,6 +2564,10 @@ type
     {$ENDIF}
 {$IFDEF VT_FMX}
     FUseRightToLeftAlignment: Boolean;
+    FBeginPanPosition: TPointF;
+    FOnDebugInfo: TNotifyEvent;
+    FDebugInfo: String;
+    procedure SetDebugInfo(ADebugInfo: String);
     procedure SetBevelCut(Index: Integer; const Value: TBevelCut);
     procedure SetBevelEdges(const Value: TBevelEdges);
     procedure SetBevelKind(const Value: TBevelKind);
@@ -2775,6 +2779,9 @@ type
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X: Single; Y: Single); override;
     procedure MouseWheel(Shift: TShiftState; WheelDelta: Integer; var Handled: Boolean); override;
     procedure Resize; override;
+    //IGestureControl interface methods
+    procedure Tap(const Point: TPointF); override;
+    procedure CMGesture(var EventInfo: TGestureEventInfo); override;
 {$ENDIF}
     procedure HandleMouseDblClick(var Message: TWMMouse; const HitInfo: THitInfo); virtual;
     procedure HandleMouseDown(var Message: TWMMouse; var HitInfo: THitInfo); virtual;
@@ -3343,6 +3350,9 @@ type
     function GetScrollBarForBar(Bar: Integer): TScrollBar;
     procedure HScrollChangeProc(Sender: TObject);
     procedure VScrollChangeProc(Sender: TObject);
+    property OnDebugInfo: TNotifyEvent read FOnDebugInfo write FOnDebugInfo;
+    property DebugInfo: String read FDebugInfo write SetDebugInfo;
+    function ShiftStateToString(Shift: TShiftState): String;
 {$ENDIF}
   end;
 
@@ -13696,16 +13706,22 @@ begin
   Result := not (vsHasChildren in Node.States) or (Node.ChildCount > 0);
 end;
 
+//----------------------------------------------------------------------------------------------------------------------
+
 {$IFDEF VT_FMX}
 function TBaseVirtualTree.GetClientHeight: Single;
 begin
   Result:= ClientRect.Height;
 end;
 
+//----------------------------------------------------------------------------------------------------------------------
+
 function TBaseVirtualTree.GetClientWidth: Single;
 begin
   Result:= ClientRect.Width;
 end;
+
+//----------------------------------------------------------------------------------------------------------------------
 
 function TBaseVirtualTree.GetClientRect: TRect;
 begin
@@ -13731,6 +13747,8 @@ begin
   //Dec(Result.Top, -OffsetY);  //increase height
 end;
 
+//----------------------------------------------------------------------------------------------------------------------
+
 procedure TBaseVirtualTree.Resize;
 Var M: TWMSize;
 begin
@@ -13746,6 +13764,92 @@ begin
   M.Result:= 0;
   WMSize(M);
 end;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+procedure TBaseVirtualTree.Tap(const Point: TPointF);
+begin
+  DebugInfo:= 'Tap(' + Point.X.ToString + ',' + Point.Y.ToString + ')';
+  inherited;
+end;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+procedure TBaseVirtualTree.SetDebugInfo(ADebugInfo: String);
+begin
+  FDebugInfo:= ADebugInfo;
+  if Assigned(FOnDebugInfo) then
+    FOnDebugInfo(Self);
+end;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+function TBaseVirtualTree.ShiftStateToString(Shift: TShiftState): String;
+begin
+  Result:= '';
+  if ssShift in Shift then
+    Result:= Result + ', ssShift' else
+  if ssAlt in Shift then
+    Result:= Result + ', ssAlt' else
+  if ssCtrl in Shift then
+    Result:= Result + ', ssCtrl' else
+  if ssLeft in Shift then
+    Result:= Result + ', ssLeft' else
+  if ssRight in Shift then
+    Result:= Result + ', ssRight' else
+  if ssMiddle in Shift then
+    Result:= Result + ', ssMiddle' else
+  if ssTouch in Shift then
+    Result:= Result + ', ssTouch' else
+  if ssPen in Shift then
+    Result:= Result + ', ssPen' else
+  if ssCommand in Shift then
+    Result:= Result + ', ssCommand' else
+  if ssHorizontal in Shift then
+    Result:= Result + ', ssHorizontal';
+end;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+procedure TBaseVirtualTree.CMGesture(var EventInfo: TGestureEventInfo);
+var
+  Displacement: TPointF;
+begin
+  DebugInfo:= 'CMGesture, GestureID: ' + Integer(EventInfo.GestureID).toString + '(' + EventInfo.Location.X.ToString + ',' + EventInfo.Location.Y.ToString + ')';
+  (*case EventInfo.GestureID of
+    igiLongTap:
+    begin
+      inherited Click;
+      EventInfo.GestureID := 0;
+    end;
+    igiPan:
+    begin
+      if TInteractiveGestureFlag.gfBegin in EventInfo.Flags then
+        FBeginPanPosition := EventInfo.Location
+      else
+      begin
+        Displacement := FBeginPanPosition - EventInfo.Location;
+        if (Scene = nil) or (Scene.GetSceneScale <= 0) or (Abs(Displacement.X) / Scene.GetSceneScale > 1) then
+          {FCanTouchClick := False};
+      end;
+
+      begin
+        if TInteractiveGestureFlag.gfBegin in EventInfo.Flags then
+          MouseDown(0, 0)
+        else
+        begin
+          if EventInfo.Flags - [TInteractiveGestureFlag.gfEnd, TInteractiveGestureFlag.gfBegin] = [] then
+            MouseMove(Displacement.X, Displacement.Y);
+          if TInteractiveGestureFlag.gfEnd in EventInfo.Flags then
+            MouseUp(Displacement.X, Displacement.Y);
+        end;
+        EventInfo.GestureID := 0;
+      end;
+    end;
+  end;  *)
+  inherited;
+end;
+
 {$ENDIF}
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -23613,6 +23717,7 @@ Var MM: TWMMouse;
   P: TPoint;
   isNC: Boolean;
 begin
+  DebugInfo:= 'MouseDown(' + X.ToString + ',' + Y.ToString + ')' + ShiftStateToString(Shift);
   P.X:= X;
   P.Y:= Y;
   if ClientRect.Contains(P) then
@@ -23632,6 +23737,7 @@ begin
   GetHitTestInfoAt(X, Y, True, hInfo);
 
   HandleMouseDown(MM, hInfo);
+  inherited;
 end;
 
 procedure TBaseVirtualTree.MouseUp(Button: TMouseButton; Shift: TShiftState; X: Single; Y: Single);
@@ -23658,6 +23764,7 @@ begin
   // get information about the hit
   GetHitTestInfoAt(X, Y, True, hInfo);
   HandleMouseUp(MM, hInfo);
+  inherited;
 end;
 
 procedure TBaseVirtualTree.MouseWheel(Shift: TShiftState; WheelDelta: Integer; var Handled: Boolean);
@@ -23683,6 +23790,7 @@ begin
   M.Result:= 0;
   CMMouseWheel(M);
   Handled:= M.Result<>0;
+  inherited;
 end;
 
 {$ENDIF}
@@ -25038,6 +25146,7 @@ var
 {$ENDIF}
 begin
 {$IFDEF VT_FMX}
+  DebugInfo:= 'MouseMove(' + X.ToString + ',' + Y.ToString + ')' + ShiftStateToString(Shift);
   P.X:= X;
   P.Y:= Y;
   if ClientRect.Contains(P) then
