@@ -25291,8 +25291,6 @@ var
   lSize: TSize;
   Theme: HTHEME;
 {$ENDIF}
-  R: TRect;
-  lSize: TSize;
 begin
   with ImageInfo do
   begin
