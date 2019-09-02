@@ -9811,8 +9811,11 @@ begin
     Transparency := 140;
   end;
 {$ENDIF}
-
+{$IF DEFINED(IOS) and (DEFINED(CPUARM) or DEFINED(CPUARM64)) or DEFINED(ANDROID)}
+  fSplitterHitTolerance := 11;
+{$ELSE} 
   fSplitterHitTolerance := 8;
+{$ENDIF}
   FFixedAreaConstraints := TVTFixedAreaConstraints.Create(Self);
   FFixedAreaConstraints.OnChange := FixedAreaConstraintsChanged;
 

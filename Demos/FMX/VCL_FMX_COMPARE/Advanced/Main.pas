@@ -14,30 +14,29 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ComCtrls, ToolWin, Buttons, ExtCtrls, StdCtrls, ImgList, ActnList,
-  StdActns, VirtualTrees;
+  StdActns, VirtualTrees, System.ImageList;
 
 type
   TMainForm = class(TForm)
-    PageScroller1: TPageScroller;
-    SpeedDemoButton: TSpeedButton;
-    AbilitiesDemoButton: TSpeedButton;
-    PropertiesDemoButton: TSpeedButton;
-    VisibilityDemoButton: TSpeedButton;
-    GridDemoButton: TSpeedButton;
-    AlignDemoButton: TSpeedButton;
-    QuitButton: TSpeedButton;
-    PaintTreeDemoButton: TSpeedButton;
     Bevel1: TBevel;
     MainPanel: TPanel;
-    Bevel2: TBevel;
-    Bevel3: TBevel;
     StatusBar: TStatusBar;
     ContainerPanel: TPanel;
     Label1: TLabel;
     Label2: TLabel;
-    XPDemoButton: TSpeedButton;
-    SpeedButton1: TSpeedButton;
-    SpeedButton2: TSpeedButton;
+    ImageListButtons: TImageList;
+    ToolBarButtons: TToolBar;
+    ToolButtonSpeed: TToolButton;
+    ToolButtonAbilities: TToolButton;
+    ToolButtonProperties: TToolButton;
+    ToolButtonVisibility: TToolButton;
+    ToolButtonGrid: TToolButton;
+    ToolButtonPaintTree: TToolButton;
+    ToolButtonAlign: TToolButton;
+    ToolButtonXP: TToolButton;
+    ToolButtonMultiline: TToolButton;
+    ToolButtonHeaderDraw: TToolButton;
+    ToolButtonQuit: TToolButton;
     procedure QuitButtonClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure DemoButtonClick(Sender: TObject);
@@ -151,7 +150,7 @@ var
   NewDemo: TForm;
 
 begin
-  case (Sender as TSpeedButton).Tag of
+  case (Sender as TComponent).Tag of
     0:
       NewDemoClass := TSpeedForm;
     1:
