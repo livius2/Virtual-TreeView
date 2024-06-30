@@ -39,6 +39,7 @@
 /__history
 *.bak
 *.Patch
+*.o
 VirtualTreeView.zip
 *.#00
 *.pch

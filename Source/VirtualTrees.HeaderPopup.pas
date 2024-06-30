@@ -1,4 +1,4 @@
-unit VirtualTrees.HeaderPopup;
+﻿unit VirtualTrees.HeaderPopup;
 
 //----------------------------------------------------------------------------------------------------------------------
 //
@@ -65,21 +65,24 @@ unit VirtualTrees.HeaderPopup;
 
 interface
 
-//{$DEFINE VT_FMX}
 {$IFNDEF VT_FMX}
   {$DEFINE VT_VCL}
 {$ENDIF}
 
 uses
 {$IFDEF VT_FMX}
-  System.Classes,
-  FMX.Menus,
-  VirtualTrees,
-  VirtualTrees.FMX;
+    System.Classes
+  , FMX.Menus
+  , VirtualTrees
+  , VirtualTrees.Types
+  , VirtualTrees.BaseTree
+  , VirtualTrees.FMX;
 {$ELSE}
-  System.Classes,
-  Vcl.Menus,
-  VirtualTrees;
+    System.Classes
+  , Vcl.Menus
+  , VirtualTrees
+  , VirtualTrees.Types
+  , VirtualTrees.BaseTree;
 {$ENDIF}
 
 
@@ -91,7 +94,7 @@ type
   );
   TVTHeaderPopupOptions = set of TVTHeaderPopupOption;
 
-  TColumnChangeEvent = procedure(const Sender: TBaseVirtualTree; const Column: TColumnIndex; Visible: Boolean) of object;
+  TColumnChangeEvent = procedure(const Sender: TObject; const Column: TColumnIndex; Visible: Boolean) of object;
 
   TVTHeaderPopupMenu = class(TPopupMenu)
   strict private
@@ -104,10 +107,10 @@ type
   strict protected
     procedure DoAddHeaderPopupItem(const Column: TColumnIndex; out Cmd: TAddPopupItemType); virtual;
     procedure DoColumnChange(Column: TColumnIndex; Visible: Boolean); virtual;
-    procedure OnMenuItemClick(Sender: TObject);
+    procedure OnMenuItemClick(Sender: TObject); virtual;
   public
     constructor Create(AOwner: TComponent); override;
-    procedure Popup(x, y: {$IFDEF VT_FMX}Single{$ELSE}Integer{$ENDIF}); override;
+    procedure Popup(x, y: TDimension); override;
   published
     property Options: TVTHeaderPopupOptions read FOptions write FOptions default [poResizeToFitItem];
 
@@ -121,13 +124,13 @@ implementation
 
 uses
 {$IFDEF VT_FMX}
-  FMX.Types;
+    FMX.Types
+  , VirtualTrees.Header;
 {$ELSE}
-  Winapi.Windows, System.Types;
+    Winapi.Windows
+  , System.Types
+  , VirtualTrees.Header;
 {$ENDIF}
-const
-  cResizeToFitMenuItemName = 'VT_ResizeToFitMenuItem';
-
 
 resourcestring
   sResizeColumnToFit = 'Size &Column to Fit';
@@ -176,6 +179,7 @@ begin
         Options := Options - [coVisible]
       else
         Options := Options + [coVisible];
+      DoColumnChange(TVTMenuItem(Sender).Tag, coVisible in Options);										
     end;
   end;
 end;
@@ -200,13 +204,19 @@ begin
   end;
 end;
 
+//----------------------------------------------------------------------------------------------------------------------
+
 function NewLine: TMenuItem;
 begin
   Result := TMenuItem.Create(nil);
   Result.Text := '-';
 end;
 {$ENDIF}
-procedure TVTHeaderPopupMenu.Popup(x, y: {$IFDEF VT_FMX}Single{$ELSE}Integer{$ENDIF});
+
+const
+ cResizeToFitMenuItemName = 'VT_ResizeToFitMenuItem';
+
+procedure TVTHeaderPopupMenu.Popup(x, y: TDimension);
 var
   ColPos: TColumnPosition;
   ColIdx: TColumnIndex;
@@ -218,6 +228,7 @@ var
   VisibleItem: TVTMenuItem;
 
   i: Integer;
+
 begin
   if Assigned(PopupComponent) and (PopupComponent is TBaseVirtualTree) then
   begin
@@ -246,7 +257,6 @@ begin
       Items.Add(TVTMenuItem.Create(Self, cLineCaption));
     end;//poResizeToFitItem
 {$ENDIF}
-
 
     // Add column menu items.
     with (PopupComponent as TBaseVirtualTree).Header do
@@ -330,4 +340,3 @@ begin
 end;
 
 end.
-

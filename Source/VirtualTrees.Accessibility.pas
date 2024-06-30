@@ -1,4 +1,4 @@
-unit VirtualTrees.Accessibility;
+﻿unit VirtualTrees.Accessibility;
 
 // This unit implements iAccessible interfaces for the VirtualTree visual components
 // and the currently focused node.
@@ -6,15 +6,33 @@ unit VirtualTrees.Accessibility;
 // Written by Marco Zehe. (c) 2007
 
 interface
-
-//{$DEFINE VT_FMX}
 {$IFNDEF VT_FMX}
   {$DEFINE VT_VCL}
 {$ENDIF}
 
+{$IFDEF VT_FMX}
 uses
-  Winapi.Windows, System.Classes, Winapi.ActiveX, System.Types, Winapi.oleacc,
-  VirtualTrees, VirtualTrees.AccessibilityFactory, Vcl.Controls;
+    Winapi.Windows
+  , Winapi.ActiveX
+  , Winapi.oleacc
+  , System.Classes
+  , System.Types
+  , FMX.Controls
+  , VirtualTrees
+  , VirtualTrees.AccessibilityFactory
+  ;
+{$ELSE}
+uses
+    Winapi.Windows
+  , Winapi.ActiveX
+  , Winapi.oleacc
+  , System.Classes
+  , System.Types
+  , Vcl.Controls
+  , VirtualTrees
+  , VirtualTrees.AccessibilityFactory
+  ;
+{$ENDIF}
 
 type
   TVirtualTreeAccessibility = class(TInterfacedObject, IDispatch, IAccessible)
@@ -22,6 +40,8 @@ type
     FVirtualTree: TVirtualStringTree;
   public
     constructor Create(AVirtualTree: TVirtualStringTree);
+    /// Register the default accessible provider of Virtual TreeView
+    class procedure RegisterDefaultAccessibleProviders();																	
 
     { IAccessibility }
     function Get_accParent(out ppdispParent: IDispatch): HResult; stdcall;
@@ -100,10 +120,21 @@ type
   end;
 
 implementation
-
+{$IFDEF VT_FMX}
 uses
-  System.SysUtils, Vcl.Forms, System.Variants, System.Math;
-
+    System.SysUtils
+  , System.Variants
+  , System.Math
+  , FMX.Forms
+  ;
+{$ELSE}
+uses
+    System.SysUtils
+  , System.Variants
+  , System.Math
+  , Vcl.Forms
+  ;
+{$ENDIF}
 type
 
 /// For getting access to protected members of this class
@@ -771,7 +802,8 @@ var
   DefaultAccessibleItemProvider: TVTDefaultAccessibleItemProvider;
   MultiColumnAccessibleProvider: TVTMultiColumnAccessibleItemProvider;
 
-initialization
+class procedure TVirtualTreeAccessibility.RegisterDefaultAccessibleProviders();
+begin
   if DefaultAccessibleProvider = nil then
   begin
     DefaultAccessibleProvider := TVTDefaultAccessibleProvider.Create;
@@ -787,6 +819,11 @@ initialization
     MultiColumnAccessibleProvider := TVTMultiColumnAccessibleItemProvider.Create;
     TVTAccessibilityFactory.GetAccessibilityFactory.RegisterAccessibleProvider(MultiColumnAccessibleProvider);
   end;
+end;
+
+
+initialization
+  TVirtualTreeAccessibility.RegisterDefaultAccessibleProviders();
 finalization
   TVTAccessibilityFactory.GetAccessibilityFactory.UnRegisterAccessibleProvider(MultiColumnAccessibleProvider);
   MultiColumnAccessibleProvider := nil;
@@ -796,6 +833,3 @@ finalization
   DefaultAccessibleProvider := nil;
 
 end.
-
-
-

@@ -11,7 +11,16 @@
 {***********************************************************}
 
 interface
-uses System.Classes, System.UITypes, System.Types, System.ImageList, FMX.ImgList, FMX.Graphics, FMX.Controls, FMX.Types
+uses
+    System.Classes
+  , System.UITypes
+  , System.Types
+  , System.ImageList
+  , System.Math.Vectors
+  , FMX.ImgList
+  , FMX.Graphics
+  , FMX.Controls
+  , FMX.Types
   , FMX.StdCtrls;
 
 //-------- type aliasing -------------------------------------------------------------------------------------------------------------------
@@ -27,6 +36,7 @@ type
   PAnsiChar = System.MarshaledAString;
   UINT = LongWord;
   PUINT = ^UINT;
+  TCustomControl = TControl; //Alias for VCL compatibility as on FMX there is not TCustomControl
 
 //------- color aliasing -------------------------------------------------------------------------------------------------------------------
 
@@ -162,6 +172,56 @@ const
   SB_BOTTOM = 7;
   SB_RIGHT = 7;
   SB_ENDSCROLL = 8;
+
+  { RedrawWindow() flags }
+  RDW_INVALIDATE = 1;
+  RDW_INTERNALPAINT = 2;
+  RDW_ERASE = 4;
+  RDW_VALIDATE = 8;
+  RDW_NOINTERNALPAINT = $10;
+  RDW_NOERASE = $20;
+  RDW_NOCHILDREN = $40;
+  RDW_ALLCHILDREN = $80;
+  RDW_UPDATENOW = $100;
+  RDW_ERASENOW = $200;
+  RDW_FRAME = $400;
+  RDW_NOFRAME = $800;
+
+  { GetSystemMetrics() codes }
+  SM_CXVSCROLL = 2;
+  SM_CYHSCROLL = 3;
+
+  EVENT_OBJECT_CREATE              = $8000;  { hwnd + ID + idChild is created item }
+  EVENT_OBJECT_DESTROY             = $8001;  { hwnd + ID + idChild is destroyed item }
+  EVENT_OBJECT_SHOW                = $8002;  { hwnd + ID + idChild is shown item }
+  EVENT_OBJECT_HIDE                = $8003;  { hwnd + ID + idChild is hidden item }
+  EVENT_OBJECT_REORDER             = $8004;  { hwnd + ID + idChild is parent of zordering children }
+  EVENT_OBJECT_FOCUS               = $8005;  { hwnd + ID + idChild is focused item }
+  EVENT_OBJECT_SELECTION           = $8006;  { hwnd + ID + idChild is selected item (if only one), or idChild is OBJID_WINDOW if complex }
+  EVENT_OBJECT_SELECTIONADD        = $8007;  { hwnd + ID + idChild is item added }
+  EVENT_OBJECT_SELECTIONREMOVE     = $8008;  { hwnd + ID + idChild is item removed }
+  EVENT_OBJECT_SELECTIONWITHIN     = $8009;  { hwnd + ID + idChild is parent of changed selected items }
+  EVENT_OBJECT_STATECHANGE         = $800A;  { hwnd + ID + idChild is item w/ state change }
+  EVENT_OBJECT_LOCATIONCHANGE      = $800B;  { hwnd + ID + idChild is moved/sized item }
+  EVENT_OBJECT_NAMECHANGE          = $800C;  { hwnd + ID + idChild is item w/ name change }
+  EVENT_OBJECT_DESCRIPTIONCHANGE   = $800D;  { hwnd + ID + idChild is item w/ desc change }
+  EVENT_OBJECT_VALUECHANGE         = $800E;  { hwnd + ID + idChild is item w/ value change }
+  EVENT_OBJECT_PARENTCHANGE        = $800F;  { hwnd + ID + idChild is item w/ new parent }
+  EVENT_OBJECT_HELPCHANGE          = $8010;  { hwnd + ID + idChild is item w/ help change }
+  EVENT_OBJECT_DEFACTIONCHANGE     = $8011;  { hwnd + ID + idChild is item w/ def action change }
+  EVENT_OBJECT_ACCELERATORCHANGE   = $8012;  { hwnd + ID + idChild is item w/ keybd accel change }
+  EVENT_OBJECT_INVOKED             = $8013;  { hwnd + ID + idChild is item invoked }
+  EVENT_OBJECT_TEXTSELECTIONCHANGED= $8014;  { hwnd + ID + idChild is item w? test selection change }
+
+var
+  // Clipboard format IDs used in OLE drag'n drop and clipboard transfers.
+  CF_VIRTUALTREE,
+  CF_VTREFERENCE,
+  CF_VRTF,
+  CF_VRTFNOOBJS,   // Unfortunately CF_RTF* is already defined as being
+                   // registration strings so I have to use different identifiers.
+  CF_HTML,
+  CF_CSV: Word;
 
 type
   tagSCROLLINFO = record
@@ -484,6 +544,18 @@ type
     procedure DrawRect(const ARect: TRectF); overload; inline;
     procedure DrawFocusRect(const AFocusRect: TRect);
     procedure FrameRect(const AFocusRect: TRect);
+    procedure RoundRect(X1, Y1, X2, Y2: Single; const XRadius, YRadius: Single); overload;
+    procedure RoundRect(const Rect: TRect; const XRadius, YRadius: Single); overload;
+    procedure Polygon(const Points: TPolygon);
+    procedure Draw(const X, Y: Single; const Bitmap: TBitmap);
+  end;
+
+  TFontHelper = class helper for TFont
+  private
+    function GetOnChange: TNotifyEvent;
+    procedure SetOnChange(const Value: TNotifyEvent);
+  public
+    property OnChange: TNotifyEvent read GetOnChange write SetOnChange;
   end;
 
 { Draws a solid triangular arrow that can point in any TScrollDirection }
@@ -494,45 +566,107 @@ type
 
 procedure DrawArrow(ACanvas: TCanvas; Direction: TScrollDirection; Location: TPoint; Size: Single);
 
+procedure ChangeBiDiModeAlignment(var Alignment: TAlignment);
+
+procedure OleUninitialize();
+
+function timeGetTime: Int64;
+
 implementation
-uses FMX.TextLayout, System.SysUtils, FMX.MultiResBitmap, FMX.Objects, VirtualTrees.Utils, FMX.Effects;
+uses
+    System.SysUtils
+  , FMX.TextLayout
+  , FMX.MultiResBitmap
+  , FMX.Objects
+  , FMX.Effects
+  , VirtualTrees.Utils
+  ;
+
+//----------------------------------------------------------------------------------------------------------------------
 
 procedure DrawArrow(ACanvas: TCanvas; Direction: TScrollDirection; Location: TPoint; Size: Single);
 begin
   //TODO: DrawArrow implementation
 end;
 
+//----------------------------------------------------------------------------------------------------------------------
+
 { TCanvasHelper }
+
+procedure TCanvasHelper.Draw(const X, Y: Single; const Bitmap: TBitmap);
+begin
+  DrawBitmap(Bitmap
+          , Rect(0, 0, Bitmap.Width, Bitmap.Height)
+          , Rect(X, Y, X+Bitmap.Width, Y+ Bitmap.Height)
+          , 1.0
+          );
+end;
+
+//----------------------------------------------------------------------------------------------------------------------
 
 procedure TCanvasHelper.DrawFocusRect(const AFocusRect: TRect);
 begin
   DrawDashRect(AFocusRect, 0, 0, AllCorners, 1.0{?}, $A0909090);
 end;
 
+//----------------------------------------------------------------------------------------------------------------------
+
 procedure TCanvasHelper.DrawRect(const ARect: TRectF);
 begin
   DrawRect(ARect, 0, 0, [], 1.0);
 end;
+
+//----------------------------------------------------------------------------------------------------------------------
 
 procedure TCanvasHelper.FillRect(const ARect: TRectF);
 begin
   FillRect(ARect, 0, 0, [], 1.0);
 end;
 
+//----------------------------------------------------------------------------------------------------------------------
+
 procedure TCanvasHelper.FrameRect(const AFocusRect: TRect);
 begin
   DrawRect(AFocusRect);
 end;
+
+//----------------------------------------------------------------------------------------------------------------------
 
 function TCanvasHelper.GetBrush: TBrush;
 begin
   Result:= Fill;
 end;
 
+//----------------------------------------------------------------------------------------------------------------------
+
 function TCanvasHelper.GetPen: TStrokeBrush;
 begin
   Result:= Stroke;
 end;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+procedure TCanvasHelper.Polygon(const Points: TPolygon);
+begin
+  DrawPolygon(Points, 1.0);
+end;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+procedure TCanvasHelper.RoundRect(const Rect: TRect; const XRadius, YRadius: Single);
+begin
+  DrawRect(Rect, XRadius, YRadius, allCorners, 1.0);
+end;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+procedure TCanvasHelper.RoundRect(X1, Y1, X2, Y2: Single; const XRadius, YRadius: Single);
+begin
+  RoundRect(Rect(X1, Y1, X2, Y2), XRadius, YRadius);
+end;
+
+
+//----------------------------------------------------------------------------------------------------------------------																														
 
 type
   TImageListHelper = class helper for TImageList
@@ -1596,6 +1730,30 @@ begin
   Move(Source^, Destination^, Length);
 end;
 
+//----------------------------------------------------------------------------------------------------------------------
+
+procedure ChangeBiDiModeAlignment(var Alignment: TAlignment);
+begin
+  case Alignment of
+    taLeftJustify:  Alignment := taRightJustify;
+    taRightJustify: Alignment := taLeftJustify;
+  end;
+end;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+procedure OleUninitialize();
+begin
+ //nothing
+end;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+function timeGetTime: Int64;
+begin
+  Result:= TThread.GetTickCount;
+end;
+
 { TChangeLink }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -1630,6 +1788,16 @@ begin
 
 end;
 
+{ TFontHelper }
 
+function TFontHelper.GetOnChange: TNotifyEvent;
+begin
+  Result:= OnChanged;
+end;
+
+procedure TFontHelper.SetOnChange(const Value: TNotifyEvent);
+begin
+  OnChanged:= Value;
+end;
 
 end.

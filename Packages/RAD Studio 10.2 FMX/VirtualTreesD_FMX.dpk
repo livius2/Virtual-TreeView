@@ -36,3 +36,5 @@ contains
   VirtualTreesReg in '..\..\Design\VirtualTreesReg.pas';
 
 end.
+
+

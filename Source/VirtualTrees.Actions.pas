@@ -1,19 +1,27 @@
-unit VirtualTrees.Actions;
+﻿unit VirtualTrees.Actions;
 
 interface
 
-//{$DEFINE VT_FMX}
 {$IFNDEF VT_FMX}
   {$DEFINE VT_VCL}
 {$ENDIF}
 
+{$IFDEF VT_FMX}
 uses
-  System.Classes,
-  System.Actions,
-  Vcl.Controls,
-  Vcl.ActnList,
-  VirtualTrees;
-
+    System.Classes
+  , System.Actions
+  , FMX.Controls
+  , FMX.ActnList
+  , VirtualTrees
+  , VirtualTrees.BaseTree;
+{$ELSE}
+uses
+    System.Classes
+  , System.Actions
+  , Vcl.Controls
+  , Vcl.ActnList
+  , VirtualTrees;
+{$ENDIF}
 type
   TVirtualTreeAction = class(TCustomAction)
   strict private
@@ -117,10 +125,15 @@ procedure Register;
 
 
 implementation
-
+{$IFDEF VT_FMX}
 uses
-  WinApi.Windows,
-  Vcl.Forms;
+    WinApi.Windows
+  , FMX.Forms;
+{$ELSE}
+uses
+    WinApi.Windows
+  , Vcl.Forms;
+{$ENDIF}
 
 procedure Register;
 begin

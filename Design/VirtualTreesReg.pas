@@ -38,7 +38,7 @@ implementation
 
 uses
 {$IFDEF VT_FMX}
-  SysUtils;
+  SysUtils, VirtualTrees.DrawTree;
 {$ELSE}
   StrEdit, Dialogs, TypInfo, SysUtils, Graphics, CommCtrl, ImgList, Controls,
   VirtualTrees.ClipBoard, VirtualTrees.Actions;

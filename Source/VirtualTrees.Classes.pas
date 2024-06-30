@@ -1,4 +1,4 @@
-unit VirtualTrees.Classes;
+﻿unit VirtualTrees.Classes;
 
 // The contents of this file are subject to the Mozilla Public License
 // Version 1.1 (the "License"); you may not use this file except in compliance
@@ -28,7 +28,6 @@ interface
 {$WARN UNSAFE_CAST OFF}
 {$WARN UNSAFE_CODE OFF}
 
-//{$DEFINE VT_FMX}
 {$IFNDEF VT_FMX}
   {$DEFINE VT_VCL}
 {$ENDIF}
@@ -72,6 +71,7 @@ type
 
     property AsString: string read GetAsString;
   end;
+
 
 implementation
 
@@ -217,5 +217,6 @@ begin
   FPosition^ := #10;
   System.Inc(FPosition);
 end;
+
 
 end.

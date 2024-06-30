@@ -1,4 +1,4 @@
-unit VirtualTrees.Utils;
+﻿unit VirtualTrees.Utils;
 
 // The contents of this file are subject to the Mozilla Public License
 // Version 1.1 (the "License"); you may not use this file except in compliance
@@ -28,29 +28,30 @@ interface
 {$WARN UNSAFE_CAST OFF}
 {$WARN UNSAFE_CODE OFF}
 
-//{$DEFINE VT_FMX}
 {$IFNDEF VT_FMX}
   {$DEFINE VT_VCL}
 {$ENDIF}
 
 uses
 {$IFDEF VT_FMX}
-  System.Types,
-  System.Sysutils,
-  FMX.Graphics,
-  FMX.ImgList,
-  System.ImageList,
-  FMX.Types,
-  VirtualTrees,
-  VirtualTrees.FMX,
-  System.UITypes;
+    System.Types
+  , System.Sysutils
+  , System.ImageList
+  , System.UITypes
+  , FMX.Graphics
+  , FMX.ImgList
+  , FMX.Types
+  , VirtualTrees.FMX
+  , VirtualTrees.Types
+  ;
 {$ELSE}
-  Winapi.Windows,
-  Winapi.ActiveX,
-  System.Types,
-  Vcl.Graphics,
-  Vcl.ImgList,
-  Vcl.Controls;
+    Winapi.Windows
+  , Winapi.ActiveX
+  , System.Types
+  , Vcl.Graphics
+  , Vcl.ImgList
+  , Vcl.Controls
+  , VirtualTrees.Types;
 {$ENDIF}
 
 
@@ -81,29 +82,45 @@ procedure DrawImage(ImageList: TCustomImageList; Index: Integer; Canvas: TCanvas
 {$ENDIF}
 
 
-// Adjusts the given string S so that it fits into the given width. EllipsisWidth gives the width of
-// the three points to be added to the shorted string. If this value is 0 then it will be determined implicitely.
-// For higher speed (and multiple entries to be shorted) specify this value explicitely.
+/// <summary>
+/// Adjusts the given string S so that it fits into the given width. EllipsisWidth gives the width of
+/// the three points to be added to the shorted string. If this value is 0 then it will be determined implicitely.
+/// For higher speed (and multiple entries to be shorted) specify this value explicitely.
+/// </summary>																	
 function ShortenString(ACanvas: TCanvas; const S: string; Width: {$IFDEF VT_FMX}Single{$ELSE}Integer{$ENDIF}; EllipsisWidth: {$IFDEF VT_FMX}Single{$ELSE}Integer{$ENDIF} = 0): string;
 
-// Wrap the given string S so that it fits into a space of given width.
-// RTL determines if right-to-left reading is active.
+/// <summary>
+/// Wrap the given string S so that it fits into a space of given width.
+/// RTL determines if right-to-left reading is active.
+/// </summary>  
 function WrapString(ACanvas: TCanvas; const S: string; const Bounds: TRect; RTL: Boolean; DrawFormat: Cardinal): string;
 
-// Calculates bounds of a drawing rectangle for the given string
+/// <summary>
+/// Calculates bounds of a drawing rectangle for the given string
+/// </summary>	  
 procedure GetStringDrawRect(ACanvas: TCanvas; const S: string; var Bounds: TRect; DrawFormat: Cardinal);
 
-// Converts the incoming rectangle so that left and top are always less than or equal to right and bottom.
+/// <summary>
+/// Converts the incoming rectangle so that left and top are always less than or equal to right and bottom.
+/// </summary>	  
 function OrderRect(const R: TRect): TRect;
 
 {$IFDEF VT_VCL}
-// Fills the given rectangles with values which can be used while dragging around an image
-// (used in DragMove of the drag manager and DragTo of the header columns).
+/// <summary>
+/// Fills the given rectangles with values which can be used while dragging around an image
+/// </summary>
+/// <remarks>
+/// (used in DragMove of the drag manager and DragTo of the header columns).
+/// </remarks>	  
 procedure FillDragRectangles(DragWidth, DragHeight, DeltaX, DeltaY: Integer; var RClip, RScroll, RSamp1, RSamp2, RDraw1, RDraw2: TRect);
 
-// Attaches a bitmap as drag image to an IDataObject, see issue #405
-// Usage: Set property DragImageKind to diNoImage, in your event handler OnCreateDataObject
-//        call VirtualTrees.Utils.ApplyDragImage() with your `IDataObject` and your bitmap.
+/// <summary>
+/// Attaches a bitmap as drag image to an IDataObject, see issue #405
+/// <code>
+/// Usage: Set property DragImageKind to diNoImage, in your event handler OnCreateDataObject
+/// <para>       call VirtualTrees.Utils.ApplyDragImage() with your `IDataObject` and your bitmap.</para>
+/// </code>
+/// </summary>
 procedure ApplyDragImage(const pDataObject: IDataObject; pBitmap: TBitmap);
 
 /// Returns True if the mouse cursor is currently visible and False in case it is suppressed.
@@ -115,6 +132,20 @@ procedure ScaleImageList(const ImgList: TImageList; M, D: Integer);
 /// Returns True if the high contrast theme is anabled in the system settings, False otherwise.
 function IsHighContrastEnabled(): Boolean;
 {$ENDIF}
+
+/// <summary>
+/// Divide depend of parameter type uses different division operator:
+/// <code>Integer uses div</code>
+/// <code>Single uses /</code>
+/// </summary>
+function Divide(const Dimension: Integer; const DivideBy: Integer): Integer; overload; inline;
+
+/// <summary>
+/// Divide depend of parameter type uses different division operator:
+/// <code>Integer uses div</code>
+/// <code>Single uses /</code>
+/// </summary>
+function Divide(const Dimension: Single; const DivideBy: Integer): Single; overload; inline;
 
 implementation
 uses
@@ -1379,27 +1410,8 @@ type
   TCustomImageListCast = class(TCustomImageList);
 
 procedure DrawImage(ImageList: TCustomImageList; Index: Integer; Canvas: TCanvas; X, Y: Integer; Style: Cardinal; Enabled: Boolean);
-
-  procedure DrawDisabledImage(ImageList: TCustomImageList; Canvas: TCanvas; X, Y, Index: Integer);
-  var
-    Params: TImageListDrawParams;
-  begin
-    FillChar(Params, SizeOf(Params), 0);
-    Params.cbSize := SizeOf(Params);
-    Params.himl := ImageList.Handle;
-    Params.i := Index;
-    Params.hdcDst := Canvas.Handle;
-    Params.x := X;
-    Params.y := Y;
-    Params.fState := ILS_SATURATE;
-    ImageList_DrawIndirect(@Params);
-  end;
-
 begin
-  if Enabled then
-    TCustomImageListCast(ImageList).DoDraw(Index, Canvas, X, Y, Style, Enabled)
-  else
-    DrawDisabledImage(ImageList, Canvas, X, Y, Index);
+  TCustomImageListCast(ImageList).DoDraw(Index, Canvas, X, Y, Style, Enabled)
 end;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -1482,6 +1494,7 @@ begin
   end;
 end;
 
+//----------------------------------------------------------------------------------------------------------------------
 
 function IsHighContrastEnabled(): Boolean;
 var
@@ -1491,6 +1504,19 @@ begin
   Result := SystemParametersInfo(SPI_GETHIGHCONTRAST, 0, @l, 0) and ((l.dwFlags and HCF_HIGHCONTRASTON) <> 0);
 end;
 
+//----------------------------------------------------------------------------------------------------------------------
+
 {$ENDIF}
+function Divide(const Dimension: Single; const DivideBy: Integer): Single;
+begin
+  Result:= Dimension / DivideBy;
+end;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+function Divide(const Dimension: Integer; const DivideBy: Integer): Integer;
+begin
+  Result:= Dimension div DivideBy;
+end;
 
 end.

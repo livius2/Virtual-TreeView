@@ -6,19 +6,26 @@
 
 interface
 
-//{$DEFINE VT_FMX}
 {$IFNDEF VT_FMX}
   {$DEFINE VT_VCL}
 {$ENDIF}
 
 {$IFDEF VT_FMX}
-uses System.SysUtils, FMX.Graphics, System.Classes, FMX.Forms,
-     FMX.Controls, System.StrUtils, System.Generics.Collections,
-     VirtualTrees, VirtualTrees.Classes, FMX.Types, System.UITypes, VirtualTrees.FMX;
+uses
+    FMX.Types
+  , VirtualTrees
+  , VirtualTrees.Classes
+  , VirtualTrees.FMX
+  ;
 {$ELSE}
-uses Winapi.Windows, System.SysUtils, Vcl.Graphics, System.Classes, Vcl.Forms,
-     Vcl.Controls, System.StrUtils, System.Generics.Collections,
-     VirtualTrees, VirtualTrees.Classes, UITypes;
+uses
+    Winapi.Windows
+  , Vcl.Graphics
+  , Vcl.Forms
+  , Vcl.Controls
+  , VirtualTrees
+  , VirtualTrees.Classes
+  ;
 {$ENDIF}
 
 function ContentToHTML(Tree: TCustomVirtualStringTree; Source: TVSTTextSourceType; const Caption: string = ''): String;
@@ -30,6 +37,35 @@ function ContentToClipboard(Tree: TCustomVirtualStringTree; Format: Word; Source
 procedure ContentToCustom(Tree: TCustomVirtualStringTree; Source: TVSTTextSourceType);
 
 implementation
+{$IFDEF VT_FMX}
+uses
+    System.Classes
+  , System.SysUtils
+  , System.StrUtils
+  , System.Generics.Collections
+  , System.UITypes
+  , FMX.Graphics
+  , FMX.Controls
+  , FMX.Forms
+  , VirtualTrees.Types
+  //, VirtualTrees.ClipBoard
+  , VirtualTrees.Header
+  , VirtualTrees.BaseTree;
+{$ELSE}
+uses
+    System.Classes
+  , System.SysUtils
+  , System.StrUtils
+  , System.Generics.Collections
+  , System.UITypes
+  , Vcl.Graphics
+  , Vcl.Controls
+  , Vcl.Forms
+  , VirtualTrees.Types
+  , VirtualTrees.ClipBoard
+  , VirtualTrees.Header
+  , VirtualTrees.BaseTree;
+{$ENDIF}
 
 type
   TCustomVirtualStringTreeCracker = class(TCustomVirtualStringTree)
@@ -519,7 +555,7 @@ var
   Fonts: TStringList;
   Colors: TList<TColor>;
   CurrentFontIndex,
-  CurrentFontColor: Integer;
+  CurrentFontColor,
   CurrentFontSize: Integer;
   Buffer: TBufferedRawByteString;
 
@@ -786,11 +822,7 @@ begin
           end;
 
           // Call back the application to know about font customization.
-{$IFDEF VT_FMX}
-          CrackTree.Canvas.Font.Assign(CrackTree.Font);
-{$ELSE}
-          CrackTree.Canvas.Font := CrackTree.Font;
-{$ENDIF}		  
+          CrackTree.Canvas.Font.Assign(CrackTree.Font);		  
           CrackTree.FFontChanged := False;
           CrackTree.DoPaintText(Run, CrackTree.Canvas, Index, ttNormal);
 
